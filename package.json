@@ -16,6 +16,7 @@
     "url": ""
   },
   "dependencies": {
+    "co": "^4.6.0",
     "logtopus": "^0.3.0",
     "mongodb": "^2.2.9"
   },

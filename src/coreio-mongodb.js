@@ -22,9 +22,10 @@
  *
  */
 
-let MongoClient = require('mongodb').MongoClient;
-let ObjectId = require('mongodb').ObjectId;
-let log = require('logtopus').getLogger('coreio');
+const MongoClient = require('mongodb').MongoClient;
+const ObjectId = require('mongodb').ObjectId;
+const log = require('logtopus').getLogger('coreio');
+const co = require('co');
 
 module.exports = function(CoreIO) {
   class MongoDBService extends CoreIO.Service {
@@ -36,6 +37,11 @@ module.exports = function(CoreIO) {
 
     connect() {
       let dbConf = CoreIO.getConf('mongodb');
+
+      if (this.conn) {
+        return Promise.resolve(this.conn);
+      }
+
       log.sys('Conenct MongoDBService', dbConf);
       return MongoClient.connect(dbConf).then(db => {
         this.conn = db;
@@ -68,27 +74,22 @@ module.exports = function(CoreIO) {
     }
 
     insert(data) {
-      let col = this.conn.collection(this.colName);
-      if (Array.isArray(data)) {
-        log.info('Insert many items into MongoDB', data);
-        return col.insertMany(data).then(res => {
+      return co(function*() {
+        const db = this.connect();
+        let col = db.collection(this.colName);
+        if (Array.isArray(data)) {
+          log.info('Insert many items into MongoDB', data);
+          const res = yield col.insertMany(data);
           log.info('... succesfully inserted!');
-          return res.insertedIds.map(item => item.toString())
-        }).catch(err => {
-          log.error('... insert failed!', err);
-          return err;
-        });
-      }
-      else {
-        log.sys('Insert an item into MongoDB', data);
-        return col.insertOne(data).then(res => {
+          return res.insertedIds.map(item => item.toString());
+        }
+        else {
+          log.sys('Insert an item into MongoDB', data);
+          const res = col.insertOne(data);
           log.sys('... succesfully inserted!');
           return res.insertedId.toString()
-        }).catch(err => {
-          log.error('... insert failed!', err);
-          return err;
-        });
-      }
+        }
+      });
     }
 
     update(id, data) {
