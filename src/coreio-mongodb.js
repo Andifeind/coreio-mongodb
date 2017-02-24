@@ -52,7 +52,7 @@ module.exports = function(CoreIO) {
       return this.connect().then(fn);
     }
 
-    fetch(query) {
+    findOne(query) {
       let col = this.conn.collection(this.colName);
       log.info('Fetch items from MongoDB', query);
 
@@ -73,9 +73,30 @@ module.exports = function(CoreIO) {
       });
     }
 
+    find(query) {
+      let col = this.conn.collection(this.colName);
+      log.info('Find items in MongoDB', query);
+
+      if (typeof query === 'string' || typeof query === 'number') {
+        query = {
+          _id: ObjectId(query)
+        }
+      };
+
+      return col.find(query).then(res => {
+        if (res === null) {
+          return null;
+        }
+
+        res.id = res._id.toString();
+        delete res._id;
+        return res;
+      });
+    }
+
     insert(data) {
       return co(function*() {
-        const db = this.connect();
+        const db = yield this.connect();
         let col = db.collection(this.colName);
         if (Array.isArray(data)) {
           log.info('Insert many items into MongoDB', data);
@@ -85,11 +106,11 @@ module.exports = function(CoreIO) {
         }
         else {
           log.sys('Insert an item into MongoDB', data);
-          const res = col.insertOne(data);
+          const res = yield col.insertOne(data);
           log.sys('... succesfully inserted!');
-          return res.insertedId.toString()
+          return res.insertedId.toString();
         }
-      });
+      }.bind(this));
     }
 
     update(id, data) {
