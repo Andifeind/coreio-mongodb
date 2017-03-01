@@ -54,16 +54,23 @@ class MongoDBService extends CoreIO.Service {
   }
 
   findOne(query) {
-    let col = this.conn.collection(this.colName);
-    log.info('Fetch items from MongoDB', query);
+    return co(function*() {
+      const db = yield this.connect();
+      const col = db.collection(this.colName);
+      log.info('Find items in MongoDB', query);
 
-    if (typeof query === 'string' || typeof query === 'number') {
-      query = {
-        _id: ObjectId(query)
-      }
-    };
+      if (typeof query === 'string' || typeof query === 'number') {
+        query = {
+          _id: ObjectId(query)
+        }
+      };
 
-    return col.findOne(query).then(res => {
+      if (typeof query === 'object' && ('id' in query)) {
+        query._id = ObjectId(query.id);
+        delete query.id;
+      };
+
+      const res = yield col.findOne(query);
       if (res === null) {
         return null;
       }
@@ -71,7 +78,7 @@ class MongoDBService extends CoreIO.Service {
       res.id = res._id.toString();
       delete res._id;
       return res;
-    });
+    }.bind(this));
   }
 
   find(query) {
@@ -107,13 +114,19 @@ class MongoDBService extends CoreIO.Service {
         log.info('Insert many items into MongoDB', data);
         const res = yield col.insertMany(data);
         log.info('... succesfully inserted!');
-        return res.insertedIds.map(item => item.toString());
+        return res.insertedIds.map(item => {
+          return {
+            id: item.toString()
+          };
+        });
       }
       else {
         log.sys('Insert an item into MongoDB', data);
         const res = yield col.insertOne(data);
         log.sys('... succesfully inserted!');
-        return res.insertedId.toString();
+        return {
+          id: res.insertedId.toString()
+        };
       }
     }.bind(this));
   }
