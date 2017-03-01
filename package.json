@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "co": "^4.6.0",
+    "coreio": "^0.1.2",
     "coreio-service-test": "0.0.2",
     "logtopus": "^0.3.0",
     "mongodb": "^2.2.9"
