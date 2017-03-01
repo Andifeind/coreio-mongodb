@@ -9,7 +9,7 @@
     "db",
     "coreio"
   ],
-  "main": "src/coreio-mongodb.js",
+  "main": "./src/coreio-mongodb.js",
   "author": {
     "name": "",
     "email": "",
